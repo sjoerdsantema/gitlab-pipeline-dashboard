@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitLab Pipeline Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f0f2f5;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f8f9fb;
+  --border: #e2e6ed;
+  --border-strong: #cdd3df;
+  --text: #1a1f2e;
+  --text-secondary: #5c6578;
+  --text-muted: #8b93a5;
+  --accent: #e24329;
+  --accent-hover: #c93a22;
+  --accent-soft: #fdecea;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 8px 32px rgba(16, 24, 40, 0.1);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --success-bg: #e8f7ee;
+  --success-text: #1a7f45;
+  --failed-bg: #fdecea;
+  --failed-text: #c62828;
+  --running-bg: #e8f2fd;
+  --running-text: #1565c0;
+  --pending-bg: #fff4e0;
+  --pending-text: #b45309;
+  --neutral-bg: #eef1f6;
+  --neutral-text: #5c6578;
+  --manual-bg: #fce8f0;
+  --manual-text: #9d174d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1117;
+    --bg-elevated: #181b24;
+    --bg-subtle: #1e2230;
+    --border: #2a3040;
+    --border-strong: #3a4155;
+    --text: #eef0f5;
+    --text-secondary: #a8b0c2;
+    --text-muted: #6b7489;
+    --accent: #fc6d3f;
+    --accent-hover: #ff8259;
+    --accent-soft: #2a1a16;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --success-bg: #142a1e;
+    --success-text: #6fcf97;
+    --failed-bg: #2a1515;
+    --failed-text: #f28b82;
+    --running-bg: #122038;
+    --running-text: #8ab4f8;
+    --pending-bg: #2a2010;
+    --pending-text: #fbbf24;
+    --neutral-bg: #252a38;
+    --neutral-text: #a8b0c2;
+    --manual-bg: #2a1520;
+    --manual-text: #f9a8d4;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.brand-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, #fc6d3f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(226, 67, 41, 0.35);
+  flex-shrink: 0;
+}
+
+.brand-icon svg { width: 22px; height: 22px; fill: #fff; }
+
+.title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
+.subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+  font-family: var(--mono);
+}
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.collapsible-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.collapsible-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.collapsible-card .card-header:hover { background: var(--bg-subtle); }
+
+.collapsible-card .card-header-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.collapsible-card .card-header-summary {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.card-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.collapsible-card.collapsed .card-chevron { transform: rotate(-90deg); }
+
+.collapsible-card .card-body { padding: 0 1.5rem 1.5rem; }
+.collapsible-card.collapsed .card-body { display: none; }
+.collapsible-card.collapsed { margin-bottom: 0.5rem; }
+
+.page.dashboard-mode { max-width: 1280px; }
+.page.dashboard-mode .topbar { margin-bottom: 1rem; }
+
+.topbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+
+.form-field { display: flex; flex-direction: column; gap: 0.375rem; }
+.form-field.full { grid-column: 1 / -1; }
+
+label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+input, select {
+  font-family: var(--font);
+  font-size: 0.875rem;
+  height: 42px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+input:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input.mono { font-family: var(--mono); font-size: 0.8125rem; }
+
+.scope-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+
+.scope-btn {
+  flex: 1;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.scope-btn.active {
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.actions {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: var(--font);
+  font-size: 0.875rem;
+  font-weight: 500;
+  height: 42px;
+  padding: 0 1.125rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+button:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+.error-msg {
+  font-size: 0.875rem;
+  color: var(--failed-text);
+  padding: 0.875rem 1rem;
+  background: var(--failed-bg);
+  border: 1px solid color-mix(in srgb, var(--failed-text) 25%, transparent);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.25rem;
+}
+
+.error-msg strong { display: block; margin-bottom: 0.25rem; }
+
+pre {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  margin-top: 0.625rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow-y: auto;
+  color: var(--text-secondary);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.stat {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.125rem;
+  box-shadow: var(--shadow);
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.stat.failed .stat-value { color: var(--failed-text); }
+.stat.running .stat-value { color: var(--running-text); }
+.stat.success .stat-value { color: var(--success-text); }
+.stat.total .stat-value { color: var(--text); }
+
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-wrap svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-wrap input {
+  padding-left: 2.25rem;
+}
+
+.toolbar select { width: auto; min-width: 150px; }
+
+.meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 0.875rem;
+}
+
+.countdown-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.625rem 0.25rem 0.375rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+}
+
+.ring-wrap svg { transform: rotate(-90deg); display: block; }
+.ring-track { fill: none; stroke: var(--border); stroke-width: 2.5; }
+.ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.table-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.col-header {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) 120px 100px 80px;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.col-header span {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.grid { display: flex; flex-direction: column; }
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) 120px 100px 80px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  transition: background 0.12s;
+  animation: fadeIn 0.25s ease;
+}
+
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--bg-subtle); }
+
+.row.status-failed { border-left: 3px solid var(--failed-text); }
+.row.status-running { border-left: 3px solid var(--running-text); }
+.row.status-pending { border-left: 3px solid var(--pending-text); }
+.row.status-success { border-left: 3px solid var(--success-text); }
+.row.status-none { border-left: 3px solid var(--border-strong); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.project-cell { min-width: 0; }
+
+.repo-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  margin-top: 0.2rem;
+  max-width: 100%;
+}
+
+.branch span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.commit-title {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ns {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.625rem;
+  border-radius: 100px;
+  text-transform: capitalize;
+}
+
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badge.success { background: var(--success-bg); color: var(--success-text); }
+.badge.success::before { background: var(--success-text); }
+.badge.failed { background: var(--failed-bg); color: var(--failed-text); }
+.badge.failed::before { background: var(--failed-text); }
+.badge.running { background: var(--running-bg); color: var(--running-text); }
+.badge.running::before { background: var(--running-text); animation: pulse 1.2s ease infinite; }
+.badge.pending { background: var(--pending-bg); color: var(--pending-text); }
+.badge.pending::before { background: var(--pending-text); }
+.badge.canceled, .badge.skipped, .badge.none, .badge.created {
+  background: var(--neutral-bg);
+  color: var(--neutral-text);
+}
+.badge.canceled::before, .badge.skipped::before, .badge.none::before, .badge.created::before {
+  background: var(--neutral-text);
+}
+.badge.manual { background: var(--manual-bg); color: var(--manual-text); }
+.badge.manual::before { background: var(--manual-text); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.time {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.link-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  justify-content: center;
+}
+
+.link-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  border-color: var(--border-strong);
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.375rem;
+  justify-content: flex-end;
+}
+
+.remove-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.remove-btn:hover {
+  background: var(--failed-bg);
+  color: var(--failed-text);
+  border-color: color-mix(in srgb, var(--failed-text) 30%, transparent);
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state, .loading-state {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.empty-state svg, .loading-state .spinner { margin-bottom: 0.75rem; }
+
+.picker-card { margin-bottom: 1.25rem; }
+
+.picker-toolbar {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.875rem;
+}
+
+.picker-toolbar .search-wrap { flex: 1; min-width: 180px; }
+
+.picker-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.picker-count {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.btn-sm {
+  height: 34px;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.project-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-subtle);
+}
+
+.project-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.project-item:last-child { border-bottom: none; }
+.project-item:hover { background: var(--bg-elevated); }
+.project-item.selected { background: var(--accent-soft); }
+
+.project-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.project-item-info { min-width: 0; flex: 1; }
+
+.project-item-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-item-path {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.monitored-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--success-text);
+  background: var(--success-bg);
+  padding: 0.125rem 0.5rem;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+
+.project-item.on-dashboard { opacity: 0.85; }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--failed-bg);
+  border-color: color-mix(in srgb, var(--failed-text) 30%, transparent);
+  color: var(--failed-text);
+}
+
+.picker-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .col-header { display: none; }
+  .row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0.5rem 0.75rem;
+    padding: 1rem;
+  }
+  .row > div:nth-child(1) { grid-column: 1; }
+  .row > div:nth-child(2) { display: none; }
+  .row > div:nth-child(3) { grid-column: 1; grid-row: 2; }
+  .row > div:nth-child(4) { grid-column: 2; grid-row: 1; align-self: start; }
+  .row > div:nth-child(5) { grid-column: 2; grid-row: 2; justify-self: end; }
+}
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 8.5L4.5 7.5 12 4l7.5 3.5L12 10.5zm-8 3.5l8 4 8-4v3l-8 4-8-4v-3z"/></svg>
+      </div>
+      <div>
+        <div class="title">Pipeline Dashboard</div>
+        <div class="subtitle" id="subtitle">gitlab.com</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-secondary" id="setup-toggle" style="display:none" onclick="toggleSetupPanels()" title="Show or hide connection settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span id="setup-toggle-label">Setup</span>
+      </button>
+      <button class="btn-secondary" onclick="loadAll()" title="Refresh">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="card collapsible-card" id="connection-card">
+    <div class="card-header" onclick="toggleSection('connection-card')">
+      <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="card-header-title">Connection</span>
+      <span class="card-header-summary" id="connection-summary"></span>
+    </div>
+    <div class="card-body">
+    <div class="form-grid">
+      <div class="form-field full">
+        <label>Scope</label>
+        <div class="scope-toggle">
+          <button type="button" class="scope-btn active" id="scope-group" onclick="setScope('group')">All in group</button>
+          <button type="button" class="scope-btn" id="scope-selected" onclick="setScope('selected')">Pick projects</button>
+          <button type="button" class="scope-btn" id="scope-project" onclick="setScope('project')">Single project</button>
+        </div>
+        <input type="hidden" id="scope" value="group" />
+      </div>
+      <div class="form-field full">
+        <label id="path-label">GitLab group path</label>
+        <input type="text" id="group" value="vodafoneziggodi/cpe" placeholder="group/subgroup" oninput="updateCollapsedSummaries()" />
+      </div>
+      <div class="form-field full">
+        <label>Personal Access Token <span style="font-weight:400;color:var(--text-muted)">(read_api)</span></label>
+        <div class="actions">
+          <input type="password" class="mono" id="token" placeholder="glpat-xxxxxxxxxxxxxxxxxxxx" style="flex:1" />
+          <button class="btn-primary" id="primary-action" onclick="onPrimaryAction()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="primary-action-label">Load pipelines</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div id="error" style="display:none" class="error-msg">
+    <strong id="error-text"></strong>
+    <pre id="error-detail" style="display:none"></pre>
+  </div>
+
+  <div id="project-picker" class="card collapsible-card picker-card" style="display:none">
+    <div class="card-header" onclick="toggleSection('project-picker')">
+      <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="card-header-title">Select projects</span>
+      <span class="card-header-summary" id="picker-summary"></span>
+    </div>
+    <div class="card-body">
+    <div class="picker-toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="picker-search" placeholder="Filter projects…" oninput="renderProjectPicker()" />
+      </div>
+      <div class="picker-actions">
+        <button type="button" class="btn-secondary btn-sm" onclick="selectAllVisible()">Select all</button>
+        <button type="button" class="btn-secondary btn-sm" onclick="clearSelection()">Clear</button>
+        <span class="picker-count" id="picker-count">0 selected</span>
+      </div>
+    </div>
+    <div class="project-list" id="project-list"></div>
+    <div class="picker-footer">
+      <button type="button" class="btn-primary" id="view-pipelines-btn" onclick="loadSelectedPipelines()" disabled>
+        Add to dashboard
+      </button>
+    </div>
+    </div>
+  </div>
+
+  <div id="stats" class="stats" style="display:none">
+    <div class="stat total"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Projects</div></div>
+    <div class="stat failed"><div class="stat-value" id="stat-failed">0</div><div class="stat-label">Failed</div></div>
+    <div class="stat running"><div class="stat-value" id="stat-running">0</div><div class="stat-label">Running</div></div>
+    <div class="stat success"><div class="stat-value" id="stat-success">0</div><div class="stat-label">Success</div></div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="toolbar" id="filter-row">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search" placeholder="Search projects…" oninput="renderRows()" />
+      </div>
+      <select id="group-filter" onchange="renderRows()" style="display:none">
+        <option value="">All groups</option>
+      </select>
+      <select id="status-filter" onchange="renderRows()">
+        <option value="">All statuses</option>
+        <option value="success">Success</option>
+        <option value="failed">Failed</option>
+        <option value="running">Running</option>
+        <option value="pending">Pending</option>
+        <option value="canceled">Canceled</option>
+        <option value="manual">Manual</option>
+        <option value="none">No pipeline</option>
+      </select>
+      <button type="button" class="btn-ghost btn-sm" id="clear-dashboard-btn" style="display:none" onclick="clearDashboard()" title="Remove all projects from the dashboard">
+        Clear dashboard
+      </button>
+    </div>
+
+    <div class="meta-bar" id="meta">
+      <span id="meta-text"></span>
+      <span id="meta-spinner" style="display:none"><span class="spinner"></span></span>
+      <span id="countdown-wrap" class="countdown-ring" style="display:none">
+        <span class="ring-wrap">
+          <svg width="18" height="18" viewBox="0 0 20 20">
+            <circle class="ring-track" cx="10" cy="10" r="7.5"/>
+            <circle class="ring-fill" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="0"/>
+          </svg>
+        </span>
+        <span id="countdown-label">5:00</span>
+      </span>
+    </div>
+
+    <div class="table-card">
+      <div class="col-header" id="col-header">
+        <span>Project</span><span>Namespace</span><span>Status</span><span>Updated</span><span></span>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = 'https://gitlab.com/api/v4';
+const REFRESH_SECS = 300;
+const CIRCUMFERENCE = 47.1;
+
+let allData = [];
+let availableProjects = [];
+let selectedProjectIds = new Set();
+let pipelinesLoaded = false;
+let browsingGroup = '';
+let countdownInterval = null;
+let refreshTimeout = null;
+let secsLeft = REFRESH_SECS;
+
+function tok() { return document.getElementById('token').value.trim(); }
+function scope() { return document.getElementById('scope').value; }
+function groupPath() { return document.getElementById('group').value.trim().replace(/^\/|\/$/g, ''); }
+function encodedPath() { return encodeURIComponent(groupPath()); }
+
+const scopeLabels = { group: 'All in group', selected: 'Pick projects', project: 'Single project' };
+
+function getMonitoredIds() {
+  return new Set(allData.map(d => d.project.id));
+}
+
+function mergePipelineData(batch) {
+  const map = new Map(allData.map(d => [d.project.id, d]));
+  batch.forEach(e => map.set(e.project.id, e));
+  allData = [...map.values()];
+}
+
+function updateSubtitle() {
+  const el = document.getElementById('subtitle');
+  if (browsingGroup && document.getElementById('project-picker').style.display !== 'none') {
+    el.textContent = 'Browsing ' + browsingGroup + (allData.length ? ' · ' + allData.length + ' in dashboard' : '');
+    return;
+  }
+  if (allData.length === 0) {
+    el.textContent = 'gitlab.com';
+    return;
+  }
+  const namespaces = new Set(allData.map(d => d.project.namespace?.full_path || '').filter(Boolean));
+  el.textContent = allData.length + ' project' + (allData.length === 1 ? '' : 's') + ' · ' + namespaces.size + ' namespace' + (namespaces.size === 1 ? '' : 's');
+}
+
+function updateGroupFilter() {
+  const select = document.getElementById('group-filter');
+  const current = select.value;
+  const paths = [...new Set(allData.map(d => d.project.namespace?.full_path || '').filter(Boolean))].sort();
+  select.style.display = paths.length > 1 ? '' : 'none';
+  select.innerHTML = '<option value="">All groups</option>' +
+    paths.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+  if (paths.includes(current)) select.value = current;
+  else select.value = '';
+  document.getElementById('clear-dashboard-btn').style.display = allData.length > 0 ? 'inline-flex' : 'none';
+}
+
+function removeProject(id) {
+  allData = allData.filter(d => d.project.id !== id);
+  if (allData.length === 0) {
+    pipelinesLoaded = false;
+    stopCountdown();
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('setup-toggle').style.display = 'none';
+    document.getElementById('page').classList.remove('dashboard-mode');
+    document.getElementById('group-filter').style.display = 'none';
+    document.getElementById('clear-dashboard-btn').style.display = 'none';
+  } else {
+    renderRows();
+    updateGroupFilter();
+  }
+  updateSubtitle();
+  updateCollapsedSummaries();
+  if (document.getElementById('project-picker').style.display !== 'none') renderProjectPicker();
+}
+
+function clearDashboard() {
+  if (allData.length && !confirm('Remove all ' + allData.length + ' projects from the dashboard?')) return;
+  allData = [];
+  pipelinesLoaded = false;
+  browsingGroup = '';
+  stopCountdown();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+  document.getElementById('setup-toggle').style.display = 'none';
+  document.getElementById('page').classList.remove('dashboard-mode');
+  document.getElementById('group-filter').style.display = 'none';
+  document.getElementById('clear-dashboard-btn').style.display = 'none';
+  updateSubtitle();
+  updateCollapsedSummaries();
+}
+
+function matchesFilters(d, search, statusF, groupF) {
+  if (search) {
+    const name = d.project.name.toLowerCase();
+    const ns = (d.project.namespace?.full_path || d.project.namespace?.name || '').toLowerCase();
+    const path = (d.project.path_with_namespace || '').toLowerCase();
+    const commit = (d.commitTitle || '').toLowerCase();
+    if (!name.includes(search) && !ns.includes(search) && !path.includes(search) && !commit.includes(search)) return false;
+  }
+  if (groupF && (d.project.namespace?.full_path || '') !== groupF) return false;
+  if (statusF && (d.pipeline?.status || 'none') !== statusF) return false;
+  return true;
+}
+
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  if (!el || el.style.display === 'none') return;
+  el.classList.toggle('collapsed');
+  updateCollapsedSummaries();
+  updateSetupToggleLabel();
+}
+
+function setSectionCollapsed(id, collapsed) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('collapsed', collapsed);
+}
+
+function isSetupCollapsed() {
+  const conn = document.getElementById('connection-card').classList.contains('collapsed');
+  const picker = document.getElementById('project-picker');
+  const pickerHidden = picker.style.display === 'none';
+  const pickerCollapsed = picker.classList.contains('collapsed');
+  return conn && (pickerHidden || pickerCollapsed);
+}
+
+function updateCollapsedSummaries() {
+  const path = groupPath() || '—';
+  document.getElementById('connection-summary').textContent =
+    scopeLabels[scope()] + ' · ' + path;
+  const n = selectedProjectIds.size;
+  document.getElementById('picker-summary').textContent =
+    n === 0 ? 'None selected' : n + ' of ' + availableProjects.length + ' selected';
+}
+
+function updateSetupToggleLabel() {
+  const btn = document.getElementById('setup-toggle-label');
+  if (btn) btn.textContent = isSetupCollapsed() ? 'Show setup' : 'Hide setup';
+}
+
+function collapseSetupPanels() {
+  setSectionCollapsed('connection-card', true);
+  const picker = document.getElementById('project-picker');
+  if (picker.style.display !== 'none') setSectionCollapsed('project-picker', true);
+  document.getElementById('page').classList.add('dashboard-mode');
+  document.getElementById('setup-toggle').style.display = 'inline-flex';
+  updateCollapsedSummaries();
+  updateSetupToggleLabel();
+}
+
+function expandSetupPanels() {
+  setSectionCollapsed('connection-card', false);
+  const picker = document.getElementById('project-picker');
+  if (picker.style.display !== 'none') setSectionCollapsed('project-picker', false);
+  document.getElementById('page').classList.remove('dashboard-mode');
+  updateSetupToggleLabel();
+}
+
+function toggleSetupPanels() {
+  if (isSetupCollapsed()) expandSetupPanels();
+  else collapseSetupPanels();
+}
+
+function setScope(val) {
+  document.getElementById('scope').value = val;
+  document.getElementById('scope-group').classList.toggle('active', val === 'group');
+  document.getElementById('scope-selected').classList.toggle('active', val === 'selected');
+  document.getElementById('scope-project').classList.toggle('active', val === 'project');
+  availableProjects = [];
+  selectedProjectIds = new Set();
+  browsingGroup = '';
+  document.getElementById('project-picker').style.display = 'none';
+  setSectionCollapsed('connection-card', false);
+  setSectionCollapsed('project-picker', false);
+  updateScopeUI();
+  updateCollapsedSummaries();
+  updateSubtitle();
+}
+
+function updateScopeUI() {
+  const s = scope();
+  const isProject = s === 'project';
+  const isSelected = s === 'selected';
+  document.getElementById('path-label').textContent = isProject ? 'GitLab project path' : 'GitLab group path';
+  document.getElementById('group').placeholder = isProject ? 'group/subgroup/project-name' : 'group/subgroup';
+  document.getElementById('primary-action-label').textContent =
+    isSelected ? 'Browse projects' : (isProject ? 'Add project' : 'Add group');
+  updateCollapsedSummaries();
+}
+
+function onPrimaryAction() {
+  if (scope() === 'selected') loadGroupProjects();
+  else addFromConnection();
+}
+
+function updatePickerCount() {
+  const n = selectedProjectIds.size;
+  document.getElementById('picker-count').textContent = n + ' selected';
+  const btn = document.getElementById('view-pipelines-btn');
+  btn.disabled = n === 0;
+  btn.textContent = n === 0 ? 'Add to dashboard' : 'Add to dashboard (' + n + ')';
+}
+
+function toggleProject(id) {
+  if (selectedProjectIds.has(id)) selectedProjectIds.delete(id);
+  else selectedProjectIds.add(id);
+  renderProjectPicker();
+}
+
+function selectAllVisible() {
+  const q = (document.getElementById('picker-search')?.value || '').toLowerCase();
+  availableProjects.forEach(p => {
+    const path = (p.path_with_namespace || p.name || '').toLowerCase();
+    if (!q || p.name.toLowerCase().includes(q) || path.includes(q)) selectedProjectIds.add(p.id);
+  });
+  renderProjectPicker();
+}
+
+function clearSelection() {
+  selectedProjectIds.clear();
+  renderProjectPicker();
+}
+
+function renderProjectPicker() {
+  const q = (document.getElementById('picker-search')?.value || '').toLowerCase();
+  const filtered = availableProjects.filter(p => {
+    const path = (p.path_with_namespace || '').toLowerCase();
+    return !q || p.name.toLowerCase().includes(q) || path.includes(q);
+  });
+
+  const monitored = getMonitoredIds();
+  document.getElementById('project-list').innerHTML = filtered.length
+    ? filtered.map(p => {
+        const checked = selectedProjectIds.has(p.id);
+        const onDash = monitored.has(p.id);
+        return '<div class="project-item' + (checked ? ' selected' : '') + (onDash ? ' on-dashboard' : '') + '" onclick="toggleProject(' + p.id + ')">' +
+          '<input type="checkbox"' + (checked ? ' checked' : '') + ' tabindex="-1" readonly />' +
+          '<div class="project-item-info">' +
+            '<div class="project-item-name">' + esc(p.name) + '</div>' +
+            '<div class="project-item-path">' + esc(p.path_with_namespace || '') + '</div>' +
+          '</div>' +
+          (onDash ? '<span class="monitored-tag">On dashboard</span>' : '') +
+          '</div>';
+      }).join('')
+    : '<div class="empty-state" style="padding:2rem">No projects match your filter.</div>';
+
+  updatePickerCount();
+  updateCollapsedSummaries();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showError(msg, detail) {
+  const el = document.getElementById('error');
+  const det = document.getElementById('error-detail');
+  if (!msg) { el.style.display = 'none'; return; }
+  document.getElementById('error-text').textContent = msg;
+  if (detail) { det.textContent = detail; det.style.display = 'block'; } else { det.style.display = 'none'; }
+  el.style.display = 'block';
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function startCountdown() {
+  stopCountdown();
+  secsLeft = REFRESH_SECS;
+  updateCountdownUI();
+  document.getElementById('countdown-wrap').style.display = 'inline-flex';
+  countdownInterval = setInterval(() => { secsLeft--; updateCountdownUI(); if (secsLeft <= 0) stopCountdown(); }, 1000);
+  refreshTimeout = setTimeout(() => refreshDashboard(), REFRESH_SECS * 1000);
+}
+
+function stopCountdown() {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  if (refreshTimeout) { clearTimeout(refreshTimeout); refreshTimeout = null; }
+}
+
+function updateCountdownUI() {
+  const mins = Math.floor(secsLeft / 60);
+  const secs = secsLeft % 60;
+  document.getElementById('countdown-label').textContent = mins + ':' + String(secs).padStart(2, '0');
+  document.getElementById('ring').style.strokeDashoffset = (CIRCUMFERENCE * (1 - secsLeft / REFRESH_SECS)).toFixed(2);
+}
+
+async function fetchPaged(url, token, acc = []) {
+  const res = await fetch(url, { headers: { 'PRIVATE-TOKEN': token } });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error('HTTP ' + res.status + ' ' + res.statusText + '\n' + body);
+  }
+  const data = await res.json();
+  if (!Array.isArray(data)) {
+    throw new Error('Unexpected response (not an array):\n' + JSON.stringify(data, null, 2));
+  }
+  acc.push(...data);
+  const next = res.headers.get('x-next-page');
+  if (next) {
+    const sep = url.includes('?') ? '&' : '?';
+    const cleanUrl = url.replace(/[&?]page=\d+/, '');
+    return fetchPaged(cleanUrl + sep + 'page=' + next, token, acc);
+  }
+  return acc;
+}
+
+async function fetchJson(url, token) {
+  const res = await fetch(url, { headers: { 'PRIVATE-TOKEN': token } });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error('HTTP ' + res.status + ' ' + res.statusText + '\n' + body);
+  }
+  return res.json();
+}
+
+async function fetchProjectPipeline(project, token) {
+  try {
+    const res = await fetch(BASE + '/projects/' + project.id + '/pipelines?per_page=1', { headers: { 'PRIVATE-TOKEN': token } });
+    const pipeData = await res.json();
+    const pipeline = Array.isArray(pipeData) ? pipeData[0] || null : null;
+    let commitTitle = null;
+    if (pipeline?.sha) {
+      try {
+        const commit = await fetchJson(BASE + '/projects/' + project.id + '/repository/commits/' + pipeline.sha, token);
+        commitTitle = commit.title || (commit.message || '').split('\n')[0] || null;
+      } catch {}
+    }
+    return { project, pipeline, commitTitle };
+  } catch {
+    return { project, pipeline: null, commitTitle: null };
+  }
+}
+
+function setLoading(msg) {
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('stats').style.display = 'none';
+  document.getElementById('grid').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>' + esc(msg) + '</div></div>';
+}
+
+async function loadGroupProjects() {
+  const token = tok();
+  const path = groupPath();
+  if (!token) { showError('Please enter a GitLab Personal Access Token.'); return; }
+  if (!path) { showError('Please enter a group path.'); return; }
+
+  showError('');
+  browsingGroup = path;
+  updateSubtitle();
+  document.getElementById('project-picker').style.display = 'block';
+  setSectionCollapsed('project-picker', false);
+  document.getElementById('project-list').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Loading projects…</div></div>';
+
+  try {
+    const url = BASE + '/groups/' + encodedPath() + '/projects?include_subgroups=true&per_page=100&page=1';
+    const prevSelected = new Set(selectedProjectIds);
+    availableProjects = await fetchPaged(url, token);
+    availableProjects.sort((a, b) => a.name.localeCompare(b.name));
+    selectedProjectIds = new Set(
+      availableProjects.filter(p => prevSelected.has(p.id)).map(p => p.id)
+    );
+    document.getElementById('picker-search').value = '';
+    renderProjectPicker();
+    updateCollapsedSummaries();
+  } catch(e) {
+    const lines = e.message.split('\n');
+    let hint = null;
+    if (lines[0].includes('404') && lines.some(l => /group/i.test(l))) {
+      hint = 'Check the group path, or switch to "Single project" if this is a project path.';
+    }
+    showError('Failed to load projects: ' + lines[0], hint || lines.slice(1).join('\n') || null);
+    document.getElementById('project-picker').style.display = 'none';
+  }
+}
+
+async function fetchPipelinesForProjects(projects, token) {
+  if (!projects.length) return;
+
+  const hadData = allData.length > 0;
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('meta').style.display = 'flex';
+  document.getElementById('meta-spinner').style.display = 'inline';
+  if (!hadData) {
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('countdown-wrap').style.display = 'none';
+    setLoading('Fetching pipelines for ' + projects.length + ' project' + (projects.length === 1 ? '' : 's') + '…');
+  } else {
+    document.getElementById('stats').style.display = 'grid';
+    document.getElementById('meta-text').textContent = 'Updating ' + projects.length + ' project' + (projects.length === 1 ? '' : 's') + '…';
+  }
+
+  stopCountdown();
+
+  const chunks = [];
+  for (let i = 0; i < projects.length; i += 10) chunks.push(projects.slice(i, i + 10));
+
+  for (const chunk of chunks) {
+    const batch = await Promise.all(chunk.map(p => fetchProjectPipeline(p, token)));
+    mergePipelineData(batch);
+    renderRows();
+  }
+
+  document.getElementById('meta-spinner').style.display = 'none';
+  document.getElementById('stats').style.display = 'grid';
+  pipelinesLoaded = allData.length > 0;
+  browsingGroup = '';
+  updateSubtitle();
+  updateGroupFilter();
+  updateMeta();
+  startCountdown();
+  collapseSetupPanels();
+  renderProjectPicker();
+}
+
+async function loadSelectedPipelines() {
+  const token = tok();
+  if (!token) { showError('Please enter a GitLab Personal Access Token.'); return; }
+  if (selectedProjectIds.size === 0) { showError('Select at least one project.'); return; }
+
+  showError('');
+  const projects = availableProjects.filter(p => selectedProjectIds.has(p.id));
+  await fetchPipelinesForProjects(projects, token);
+  selectedProjectIds.clear();
+  renderProjectPicker();
+}
+
+async function addFromConnection() {
+  const token = tok();
+  const path = groupPath();
+  const isProject = scope() === 'project';
+  if (!token) { showError('Please enter a GitLab Personal Access Token.'); return; }
+  if (!path) { showError(isProject ? 'Please enter a project path.' : 'Please enter a group path.'); return; }
+
+  showError('');
+  document.getElementById('project-picker').style.display = 'none';
+
+  try {
+    let projects;
+    if (isProject) {
+      const project = await fetchJson(BASE + '/projects/' + encodedPath(), token);
+      projects = [project];
+    } else {
+      const url = BASE + '/groups/' + encodedPath() + '/projects?include_subgroups=true&per_page=100&page=1';
+      projects = await fetchPaged(url, token);
+    }
+
+    if (projects.length === 0) {
+      showError('No projects found. Check the path and token permissions.');
+      return;
+    }
+
+    await fetchPipelinesForProjects(projects, token);
+  } catch(e) {
+    const lines = e.message.split('\n');
+    let hint = null;
+    if (!isProject && lines[0].includes('404') && lines.some(l => /group/i.test(l))) {
+      hint = 'This path may be a project, not a group. Switch scope to "Single project" and use the full path (group/subgroup/project-name).';
+    }
+    showError('Failed to load: ' + lines[0], hint || lines.slice(1).join('\n') || null);
+  }
+}
+
+async function refreshDashboard() {
+  const token = tok();
+  if (!token) { showError('Please enter a GitLab Personal Access Token.'); return; }
+  if (allData.length === 0) return onPrimaryAction();
+  showError('');
+  const projects = allData.map(d => d.project);
+  await fetchPipelinesForProjects(projects, token);
+}
+
+async function loadAll() {
+  return refreshDashboard();
+}
+
+function updateMeta() {
+  const search = document.getElementById('search')?.value.toLowerCase() || '';
+  const statusF = document.getElementById('status-filter')?.value || '';
+  const groupF = document.getElementById('group-filter')?.value || '';
+  const visible = allData.filter(d => matchesFilters(d, search, statusF, groupF));
+  const failed = visible.filter(d => d.pipeline?.status === 'failed').length;
+  const running = visible.filter(d => d.pipeline?.status === 'running').length;
+  const success = visible.filter(d => d.pipeline?.status === 'success').length;
+  document.getElementById('stat-total').textContent = visible.length;
+  document.getElementById('stat-failed').textContent = failed;
+  document.getElementById('stat-running').textContent = running;
+  document.getElementById('stat-success').textContent = success;
+  const nsCount = new Set(allData.map(d => d.project.namespace?.full_path).filter(Boolean)).size;
+  document.getElementById('meta-text').textContent = allData.length + ' monitored · ' + nsCount + ' namespace' + (nsCount === 1 ? '' : 's');
+}
+
+function renderRows() {
+  const search = document.getElementById('search')?.value.toLowerCase() || '';
+  const statusF = document.getElementById('status-filter')?.value || '';
+  const groupF = document.getElementById('group-filter')?.value || '';
+
+  let filtered = allData.filter(d => matchesFilters(d, search, statusF, groupF));
+
+  filtered.sort((a, b) => {
+    const order = { failed:0, running:1, pending:2, manual:3, success:4, canceled:5, skipped:6, none:7 };
+    return (order[a.pipeline?.status||'none']||9) - (order[b.pipeline?.status||'none']||9);
+  });
+
+  document.getElementById('grid').innerHTML = filtered.map(d => {
+    const p = d.project;
+    const pipe = d.pipeline;
+    const status = pipe?.status || 'none';
+    const branch = pipe?.ref || '—';
+    const pipeUrl = pipe ? p.web_url + '/-/pipelines/' + pipe.id : p.web_url;
+    return '<div class="row status-' + status + '">' +
+      '<div class="project-cell">' +
+        '<div class="repo-name" title="' + esc(p.name_with_namespace) + '">' + esc(p.name) + '</div>' +
+        '<div class="branch"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg><span>' + esc(branch) + '</span></div>' +
+        (d.commitTitle ? '<div class="commit-title" title="' + esc(d.commitTitle) + '">' + esc(d.commitTitle) + '</div>' : '') +
+      '</div>' +
+      '<div class="ns" title="' + esc(p.path_with_namespace || '') + '">' + esc(p.namespace?.full_path || p.namespace?.name || '') + '</div>' +
+      '<div><span class="badge ' + status + '">' + status + '</span></div>' +
+      '<div class="time">' + timeAgo(pipe?.updated_at) + '</div>' +
+      '<div class="row-actions">' +
+        '<button type="button" class="link-btn" onclick="window.open(\'' + esc(pipeUrl) + '\',\'_blank\')" title="Open in GitLab">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+        '</button>' +
+        '<button type="button" class="remove-btn" onclick="removeProject(' + p.id + ')" title="Remove from dashboard">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '</div>';
+  }).join('') || '<div class="empty-state">No projects match your filters.</div>';
+
+  updateMeta();
+}
+
+updateScopeUI();
+updateCollapsedSummaries();
+</script>
+</body>
+</html>
