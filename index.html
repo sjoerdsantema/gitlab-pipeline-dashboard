@@ -924,7 +924,6 @@ let selectedProjectIds = new Set();
 let pipelinesLoaded = false;
 let browsingGroup = '';
 let countdownInterval = null;
-let refreshTimeout = null;
 let secsLeft = REFRESH_SECS;
 
 function tok() { return document.getElementById('token').value.trim(); }
@@ -1192,13 +1191,18 @@ function startCountdown() {
   secsLeft = REFRESH_SECS;
   updateCountdownUI();
   document.getElementById('countdown-wrap').style.display = 'inline-flex';
-  countdownInterval = setInterval(() => { secsLeft--; updateCountdownUI(); if (secsLeft <= 0) stopCountdown(); }, 1000);
-  refreshTimeout = setTimeout(() => refreshDashboard(), REFRESH_SECS * 1000);
+  countdownInterval = setInterval(() => {
+    secsLeft--;
+    updateCountdownUI();
+    if (secsLeft <= 0) {
+      stopCountdown();
+      refreshDashboard();
+    }
+  }, 1000);
 }
 
 function stopCountdown() {
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-  if (refreshTimeout) { clearTimeout(refreshTimeout); refreshTimeout = null; }
 }
 
 function updateCountdownUI() {
